@@ -2,6 +2,21 @@ workspace(name = "xnnpack")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# Load emsdk. See https://github.com/emscripten-core/emsdk/tree/26a0dea0d3bbf616fa7f0a908e5b08aab406f7c4/bazel#setup-instructions
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+    name = "emsdk",
+    sha256 = "6479c60710bfb1d146a8bdd8619b693699e73185c850a6eb79ef2bd7e2a8e411",
+    strip_prefix = "emsdk-3.1.18/bazel",
+    url = "https://github.com/emscripten-core/emsdk/archive/refs/tags/3.1.18.tar.gz"
+)
+
+load("@emsdk//:deps.bzl", emsdk_deps = "deps")
+emsdk_deps()
+
+load("@emsdk//:emscripten_deps.bzl", emsdk_emscripten_deps = "emscripten_deps")
+emsdk_emscripten_deps(emscripten_version = "3.1.18")
+
 # Bazel rule definitions
 http_archive(
     name = "rules_cc",
@@ -94,8 +109,8 @@ http_archive(
    ],
 )
 
-# Android NDK location and version is auto-detected from $ANDROID_NDK_HOME environment variable
-android_ndk_repository(name = "androidndk")
+# # Android NDK location and version is auto-detected from $ANDROID_NDK_HOME environment variable
+# android_ndk_repository(name = "androidndk")
 
-# Android SDK location and API is auto-detected from $ANDROID_HOME environment variable
-android_sdk_repository(name = "androidsdk")
+# # Android SDK location and API is auto-detected from $ANDROID_HOME environment variable
+# android_sdk_repository(name = "androidsdk")
