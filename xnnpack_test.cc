@@ -2,38 +2,19 @@
 
 #include <xnnpack.h>
 
-/* enum xnn_status xnn_create_max_pooling2d_nhwc_s8( */
-/*   uint32_t input_padding_top, */
-/*   uint32_t input_padding_right, */
-/*   uint32_t input_padding_bottom, */
-/*   uint32_t input_padding_left, */
-/*   uint32_t pooling_height, */
-/*   uint32_t pooling_width, */
-/*   uint32_t stride_height, */
-/*   uint32_t stride_width, */
-/*   uint32_t dilation_height, */
-/*   uint32_t dilation_width, */
-/*   size_t channels, */
-/*   size_t input_pixel_stride, */
-/*   size_t output_pixel_stride, */
-/*   int8_t output_min, */
-/*   int8_t output_max, */
-/*   uint32_t flags, */
-/*   xnn_operator_t* max_pooling_op_out); */
-
-/* enum xnn_status xnn_setup_max_pooling2d_nhwc_s8( */
-/*   xnn_operator_t max_pooling_op, */
-/*   size_t batch_size, */
-/*   size_t input_height, */
-/*   size_t input_width, */
-/*   const int8_t* input, */
-/*   int8_t* output, */
-/*   pthreadpool_t threadpool); */
+bool check_status(xnn_status status, const char* description = 0) {
+  if (status != xnn_status_success && description) {
+      std::cout << description << " failed: " << status << std::endl;
+      return false;
+  }
+  return true;
+}
 
 int main(int, char**) {
   auto status = xnn_initialize(nullptr /* allocator */);
-  if (status != xnn_status_success) {
-    std::cout << "xnn_initialize failed" << std::endl;
+
+  if (!check_status(status, "xnn_initialize")) {
+    return 1;
   }
 
   xnn_operator_t max_pool_op;
@@ -54,8 +35,7 @@ int main(int, char**) {
     0, // Flags
     &max_pool_op);
 
-  if (status != xnn_status_success) {
-    std::cout << "xnn_create_max_pooling2d_nhwc_s8 failed" << status << std::endl;
+  if (!check_status(status, "xnn_create_max_pooling2d_nhwc_s8")) {
     return 1;
   }
 
@@ -65,15 +45,12 @@ int main(int, char**) {
   status = xnn_setup_max_pooling2d_nhwc_s8(max_pool_op,
     1 /* batch size */, 2 /* input_height */, 2 /* input_height */, input, output, nullptr /* threadpool */);
 
-  if (status != xnn_status_success) {
-    std::cout << "xnn_setup_max_pooling2d_nhwc_s8 failed" << status << std::endl;
+  if (!check_status(status, "xnn_setup_max_pooling2d_nhwc_s8")) {
     return 1;
   }
 
   status = xnn_run_operator(max_pool_op, nullptr /* threadpool */);
-
-  if (status != xnn_status_success) {
-    std::cout << "xnn_run_operator failed" << status << std::endl;
+  if (!check_status(status, "xnn_run_operator")) {
     return 1;
   }
 
@@ -82,14 +59,12 @@ int main(int, char**) {
   }
 
   status = xnn_delete_operator(max_pool_op);
-  if (status != xnn_status_success) {
-    std::cout << "xnn_delete_operator failed" << status << std::endl;
+  if (!check_status(status, "xnn_delete_operator")) {
     return 1;
   }
 
   status = xnn_deinitialize();
-  if (status != xnn_status_success) {
-    std::cout << "xnn_deinitialize failed" << status << std::endl;
+  if (!check_status(status, "xnn_deinitialize")) {
     return 1;
   }
 
