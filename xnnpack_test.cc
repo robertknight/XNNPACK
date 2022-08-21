@@ -17,8 +17,27 @@ int main(int, char**) {
     return 1;
   }
 
-  xnn_operator_t max_pool_op;
-  status = xnn_create_max_pooling2d_nhwc_s8(
+  xnn_subgraph_t subgraph;
+  status = xnn_create_subgraph(2 /* external_value_ids */, 0 /* flags */, &subgraph);
+  if (!check_status(status, "xnn_create_subgraph")) {
+    return 1;
+  }
+
+  uint32_t input_id = 0;
+  uint32_t output_id = 1;
+
+  uint32_t unused;
+
+  // Define input as NHWC
+  size_t in_dims[4] = {1, 2, 2, 1};
+  status = xnn_define_tensor_value(subgraph, xnn_datatype_fp32, 4 /* dims */, in_dims, nullptr /* data */, input_id, XNN_VALUE_FLAG_EXTERNAL_INPUT /* flags */, &unused /* id_out */);
+
+  // Define output as NHWC
+  size_t out_dims[4] = {1, 2, 2, 1};
+  status = xnn_define_tensor_value(subgraph, xnn_datatype_fp32, 4 /* dims */, out_dims, nullptr /* data */, output_id, XNN_VALUE_FLAG_EXTERNAL_OUTPUT /* flags */, &unused /* id_out */);
+
+  status = xnn_define_max_pooling_2d(
+    subgraph,
     // Padding top, right, bottom, left
     0, 0, 0, 0,
     // Pooling height, width
@@ -27,46 +46,44 @@ int main(int, char**) {
     2, 2,
     // Dilation height, width
     1, 1,
-    1, // Channels
-    1, // Input pixel stride
-    1, // Output pixel stride
     0, // Output min
     5, // Outut max
-    0, // Flags
-    &max_pool_op);
+    input_id,
+    output_id,
+    0 // Flags
+    );
 
-  if (!check_status(status, "xnn_create_max_pooling2d_nhwc_s8")) {
+  if (!check_status(status, "xnn_define_max_pooling_2d")) {
     return 1;
   }
 
-  const int8_t input[4] = {3, 2, 5, 0};
-  int8_t output[4] = {0, 0, 0, 0};
-
-  status = xnn_setup_max_pooling2d_nhwc_s8(max_pool_op,
-    1 /* batch size */, 2 /* input_height */, 2 /* input_height */, input, output, nullptr /* threadpool */);
-
-  if (!check_status(status, "xnn_setup_max_pooling2d_nhwc_s8")) {
+  xnn_runtime_t runtime;
+  status = xnn_create_runtime(subgraph, &runtime);
+  if (!check_status(status, "xnn_create_runtime")) {
     return 1;
   }
 
-  status = xnn_run_operator(max_pool_op, nullptr /* threadpool */);
-  if (!check_status(status, "xnn_run_operator")) {
+  float input[4] = {3.f, 2.f, 5.f, 0.f};
+  float output[4] = {0.f, 0.f, 0.f, 0.f};
+
+  xnn_external_value in_val = { .id = input_id, .data = input };
+  xnn_external_value out_val = { .id = output_id, .data = output };
+  xnn_external_value external_values[2] = {in_val, out_val};
+  status = xnn_setup_runtime(runtime, 2 /* num_external_values */, external_values);
+  if (!check_status(status, "xnn_setup_runtime")) {
+    return 1;
+  }
+
+  status = xnn_invoke_runtime(runtime);
+  if (!check_status(status, "xnn_invoke_runtime")) {
     return 1;
   }
 
   for (int i=0; i < 4; i++) {
-    std::cout << "result" << i << ": " << static_cast<int>(output[i]) << std::endl;
+    std::cout << "graph output " << i << ": " << static_cast<int>(output[i]) << std::endl;
   }
 
-  status = xnn_delete_operator(max_pool_op);
-  if (!check_status(status, "xnn_delete_operator")) {
-    return 1;
-  }
-
-  status = xnn_deinitialize();
-  if (!check_status(status, "xnn_deinitialize")) {
-    return 1;
-  }
+  // TODO: Cleanup
 
   std::cout << "XNNPack test finished" << std::endl;
 }
