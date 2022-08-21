@@ -47,7 +47,7 @@
 #endif
 
 #if XNN_LOG_TO_STDIO
-static void xnn_vlog(int output_handle, const char* prefix, size_t prefix_length, const char* format, va_list args) {
+void xnn_vlog(int output_handle, const char* prefix, size_t prefix_length, const char* format, va_list args) {
   char stack_buffer[XNN_LOG_STACK_BUFFER_SIZE];
   char* heap_buffer = NULL;
   char* out_buffer = &stack_buffer[0];
