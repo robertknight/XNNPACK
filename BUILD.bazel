@@ -15898,3 +15898,10 @@ alias(
         "//conditions:default": ":arm_dotprod_enabled_by_default",
     }),
 )
+
+# emscripten test
+cc_binary(
+    name = "xnnpack-wasm-test",
+    srcs = ["xnnpack_test.cc"],
+    deps = [":XNNPACK"]
+)
